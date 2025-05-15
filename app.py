@@ -19,8 +19,11 @@ emotions = [
     {"label": "Gratitud", "emoji": "🙏"},
     {"label": "Miedo", "emoji": "😨"}
 ]
+st.title("🌈 VITAL")
+st.title("Asistente de Salud Mental con I.A.")
+#st.title("Diagnóstico Preliminar de Salud Mental")
 
-st.title("🧘 Diario Emocional Diario")
+st.title("📔 Diario Emocional: Check-in diario")
 
 st.subheader("¿Cómo te sientes hoy?")
 
@@ -137,8 +140,8 @@ def obtener_diagnostico(sintomas):
     return resultados
 
 # Título de la aplicación
-st.title("🌈 VITAL")
-st.title("Asistente de Salud Mental con I.A.")
+#st.title("🌈 VITAL")
+#st.title("Asistente de Salud Mental con I.A.")
 st.title("Diagnóstico Preliminar de Salud Mental")
 st.markdown(
     "Bienvenido a **VITAL**, una aplicación que utiliza Inteligencia Artificial "
