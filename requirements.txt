@@ -1,0 +1,5 @@
+streamlit>=1.28
+pandas
+numpy<2
+chardet
+matplotlib
