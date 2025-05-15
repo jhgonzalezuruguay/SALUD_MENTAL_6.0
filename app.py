@@ -23,7 +23,7 @@ st.title("🌈 VITAL")
 st.title("Asistente de Salud Mental con I.A.")
 #st.title("Diagnóstico Preliminar de Salud Mental")
 
-st.title("📔 Diario Emocional: Check-in diario")
+st.title("📔 Diario Emocional: Check-in")
 
 st.subheader("¿Cómo te sientes hoy?")
 
