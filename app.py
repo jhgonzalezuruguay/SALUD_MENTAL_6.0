@@ -327,6 +327,9 @@ st.write("VITAL LE AGRADECE POR CONFIAR Y USAR NUESTRO SERVICIO ❤️")
 st.subheader("⚠️  Por consultas, y/o para participar y brindar tu servicio como profesional de la salud en nuestra app, comunicarse con:")
 st.write("Mag. José González Gómez")
 st.write("Correo: josehumbertogonzalezgomez@gmail.com")
+
+# Sección 6: Profesionales referentes
+st.markdown("---")
 st.write("PROFESIONALES DE LA SALUD REFERENTES:")
 st.write("Psic. Natalia Brandl")
 st.write("Correo: brandlnatalia@gmail.com")
@@ -334,4 +337,14 @@ st.write("Atención presencial en: Germán Barbato 1358. Apto 501, y virtual")
 st.write('Tesis: "Adicción a videojuegos como riesgo invisible de suicidio"')
 st.write("Ps. Bryan Mora Durán")
 st.write("Correo: bryanmoraduran@gmail.com")
+
+# Sección 7: Talleres
+st.markdown("---")
+st.write("SECCIÓN DE TALLERES:")
+st.write("Lic. Guillermo Rodríguez")
+st.write("Taller de Informática (virtual)")
+st.write("Taller de inglés (virtual)")
+st.write("Correo: williamforever2014@gmail.com")
+
+st.markdown("---")
 st.write("**Nota:** Esta herramienta proporciona diagnósticos preliminares basados en los síntomas ingresados. No reemplaza una consulta profesional.")
