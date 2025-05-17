@@ -330,7 +330,7 @@ st.write("Correo: josehumbertogonzalezgomez@gmail.com")
 
 # Sección 6: Profesionales referentes
 st.markdown("---")
-st.write("PROFESIONALES DE LA SALUD REFERENTES:")
+st.subheader("PROFESIONALES DE LA SALUD REFERENTES:")
 st.write("Psic. Natalia Brandl")
 st.write("Correo: brandlnatalia@gmail.com")
 st.write("Atención presencial en: Germán Barbato 1358. Apto 501, y virtual")
@@ -340,7 +340,7 @@ st.write("Correo: bryanmoraduran@gmail.com")
 
 # Sección 7: Talleres
 st.markdown("---")
-st.write("SECCIÓN DE TALLERES:")
+st.subheader("SECCIÓN DE TALLERES:")
 st.write("Lic. Guillermo Rodríguez")
 st.write("Taller de Informática (virtual)")
 st.write("Taller de inglés (virtual)")
