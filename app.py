@@ -5,6 +5,25 @@ from matplotlib.dates import DateFormatter
 from datetime import datetime
 import os
 
+#import streamlit as st
+import streamlit.components.v1 as components
+
+# Inyectar el manifest y el registro del service worker
+components.html(
+    """
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+    """,
+    height=0,
+)
+
+
 # Inicializa la base de datos temporal
 if "diary_data" not in st.session_state:
     st.session_state.diary_data = []
