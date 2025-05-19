@@ -6,6 +6,26 @@ from datetime import datetime
 import os
 
 #import streamlit as st
+
+# Inyecta el manifest y los íconos en el <head>
+st.markdown("""
+<link rel="manifest" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/icon-512.png">
+""", unsafe_allow_html=True)
+
+# Registra el service worker
+st.markdown("""
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/sw.js');
+  });
+}
+</script>
+""", unsafe_allow_html=True)
+
+#import streamlit as st
 import streamlit.components.v1 as components
 
 # Inyectar el manifest y el registro del service worker
