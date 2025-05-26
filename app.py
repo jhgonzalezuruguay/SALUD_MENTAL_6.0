@@ -141,7 +141,7 @@ def cargar_datos_enriquecidos():
 
 data = cargar_datos_enriquecidos()
 
-# Función para normalizar nombres de enfermedades
+"""# Función para normalizar nombres de enfermedades
 def normalizar_enfermedad(enfermedad):
     enfermedad = enfermedad.lower()
     if "pánico" in enfermedad:
@@ -176,7 +176,7 @@ def obtener_diagnostico(sintomas):
                         resultados[enfermedad]['descripcion'] += f"\n\n{descripcion}"
                     if url not in resultados[enfermedad]['urls']:
                         resultados[enfermedad]['urls'].append(url)
-    return resultados
+    return resultados"""
 
 # Título de la aplicación
 #st.title("🌈 VITAL")
