@@ -1,52 +1,19 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
 from datetime import datetime
 import os
 import csv
 import base64
-import streamlit.components.v1 as components
 
-# Inyecta el manifest y los íconos en el <head>
-st.markdown("""
-<link rel="manifest" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/icon-512.png">
-""", unsafe_allow_html=True)
+# ================== CONFIGURACIÓN DE ADMIN ==================
+ADMIN_PASSWORD = "123456"  # CAMBIA esto por tu clave secreta
 
-# Registra el service worker
-st.markdown("""
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('https://jhgonzalezuruguay.github.io/SALUD_MENTAL_3.0/sw.js');
-  });
-}
-</script>
-""", unsafe_allow_html=True)
+# ================== FUNCIONES ===============================
 
-components.html(
-    """
-    <link rel="manifest" href="/manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js');
-            });
-        }
-    </script>
-    """,
-    height=0,
-)
-
-# Archivo CSV para el diario emocional
 DIARIO_CSV = "diario_emocional.csv"
 
-# Función: Guardar entrada en CSV
 def guardar_diario_csv(entry):
     file_exists = os.path.isfile(DIARIO_CSV)
-    # Convertir listas y diccionarios a string para guardar en CSV
     entry_to_save = entry.copy()
     entry_to_save["emociones"] = ";".join(entry["emociones"]) if entry["emociones"] else ""
     entry_to_save["intensidades"] = ";".join([f"{k}:{v}" for k, v in entry["intensidades"].items()]) if entry["intensidades"] else ""
@@ -57,26 +24,48 @@ def guardar_diario_csv(entry):
             writer.writeheader()
         writer.writerow(entry_to_save)
 
-# Función: Cargar todas las entradas desde el CSV
 def cargar_diario_csv():
     if os.path.isfile(DIARIO_CSV):
-        df = pd.read_csv(DIARIO_CSV)
+        try:
+            df = pd.read_csv(DIARIO_CSV, dtype={'codigo_usuario':str})
+        except Exception:
+            df = pd.read_csv(DIARIO_CSV, dtype=str)
         return df
     else:
-        return pd.DataFrame(columns=["fecha", "emociones", "intensidades", "contexto", "acciones"])
+        return pd.DataFrame(columns=["codigo_usuario","fecha", "emociones", "intensidades", "contexto", "acciones"])
 
-# Función: Crear enlace de descarga
-def get_table_download_link(df):
+def get_table_download_link(df, filename="diario_emocional.csv"):
     csv_str = df.to_csv(index=False, encoding='utf-8')
     b64 = base64.b64encode(csv_str.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="diario_emocional.csv">Descargar historial como CSV</a>'
+    href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Descargar historial como CSV</a>'
     return href
 
-# Inicializa la base de datos temporal
+# ================== SESIONES STREAMLIT ======================
 if "diary_data" not in st.session_state:
     st.session_state.diary_data = []
+if "codigo_usuario" not in st.session_state:
+    st.session_state.codigo_usuario = None
+if "admin_ok" not in st.session_state:
+    st.session_state.admin_ok = False
 
-# Lista de emociones disponibles
+# ================== TÍTULOS ================================
+st.title("🌈 VITAL")
+st.title("Asistente de Salud Mental con I.A.")
+st.title("📔 Diario Emocional: Check-in")
+
+# =========== INGRESO DE USUARIO (CÓDIGO IDENTIFICADOR) ===========
+if st.session_state.codigo_usuario is None:
+    st.subheader("🔒 Ingreso de Usuario")
+    codigo_input = st.text_input("Por favor, ingresa tu código identificador de 7 dígitos:", max_chars=7)
+    if st.button("Ingresar"):
+        if codigo_input.isdigit() and len(codigo_input) == 7:
+            st.session_state.codigo_usuario = codigo_input
+            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional.")
+        else:
+            st.error("El código debe ser numérico y tener exactamente 7 dígitos.")
+    st.stop()
+
+# =========== ENTRADA DIARIO EMOCIONAL ======================
 emotions = [
     {"label": "Alegría", "emoji": "😊"},
     {"label": "Ansiedad", "emoji": "😟"},
@@ -86,10 +75,6 @@ emotions = [
     {"label": "Gratitud", "emoji": "🙏"},
     {"label": "Miedo", "emoji": "😨"}
 ]
-st.title("🌈 VITAL")
-st.title("Asistente de Salud Mental con I.A.")
-
-st.title("📔 Diario Emocional: Check-in")
 
 st.subheader("¿Cómo te sientes hoy?")
 
@@ -112,9 +97,9 @@ coping_actions = st.multiselect(
     ["Hablé con alguien", "Medité", "Salí a caminar", "Escuché música", "Escribí", "Nada en particular"]
 )
 
-# Guardar entrada
 if st.button("💾 Guardar entrada de hoy"):
     entry = {
+        "codigo_usuario": st.session_state.codigo_usuario,
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "emociones": selected_emotions,
         "intensidades": emotion_intensities,
@@ -122,44 +107,66 @@ if st.button("💾 Guardar entrada de hoy"):
         "acciones": coping_actions
     }
     st.session_state.diary_data.append(entry)
-    guardar_diario_csv(entry)  # Guarda en CSV permanente
+    guardar_diario_csv(entry)
     st.success("✔️ Entrada guardada exitosamente.")
 
-# Mostrar historial
+# =========== HISTORIAL INDIVIDUAL (SIN DESCARGA) =================
 if st.checkbox("📖 Mostrar historial de entradas"):
     df = cargar_diario_csv()
     if not df.empty:
-        st.dataframe(df)
-        st.markdown(get_table_download_link(df), unsafe_allow_html=True)
+        df_usuario = df[df["codigo_usuario"] == st.session_state.codigo_usuario]
+        if not df_usuario.empty:
+            st.dataframe(df_usuario)
+            st.info("Solo el administrador puede descargar el historial en CSV.")
+        else:
+            st.info("Aún no has registrado entradas.")
     else:
         st.info("Aún no has registrado entradas.")
 
-# Chat de asistencia
-st.sidebar.title("🤖 Chat de Asistencia")
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "👋 Hola! Soy tu asistente de salud mental. ¿Cómo te sientes hoy?"}
-    ]
+# =========== ACCESO ADMINISTRATIVO ================================
+st.markdown("---")
+st.subheader("🔑 Acceso administrativo (descarga de datos)")
 
-for message in st.session_state.messages:
-    with st.sidebar:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+if not st.session_state.admin_ok:
+    admin_code = st.text_input("Código de administrador:", type="password")
+    if st.button("Ingresar como administrador"):
+        if admin_code == ADMIN_PASSWORD:
+            st.session_state.admin_ok = True
+            st.success("Acceso concedido. Puedes descargar los historiales.")
+        else:
+            st.error("Código incorrecto.")
+else:
+    st.success("🟢 Acceso de administrador activo.")
 
-if prompt := st.sidebar.chat_input("Cuéntame cómo te sientes..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.sidebar:
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        with st.chat_message("assistant"):
-            response = "Gracias por compartir. Si necesitas más ayuda, revisa las secciones de la aplicación."
-            st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    # Listado de códigos únicos de usuario
+    st.markdown("#### Códigos de usuario registrados")
+    df = cargar_diario_csv()
+    codigos_unicos = sorted(df["codigo_usuario"].unique())
+    st.write("Códigos únicos registrados:")
+    st.code('\n'.join(codigos_unicos), language="text")
 
-# ---- Otras secciones y enlaces ----
+    # Descarga historial individual de cualquier usuario
+    st.markdown("#### Descargar historial individual de usuario")
+    buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=7, key="descarga_individual")
+    if buscar_codigo:
+        df_usuario = df[df["codigo_usuario"] == buscar_codigo]
+        if not df_usuario.empty:
+            st.dataframe(df_usuario)
+            st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_codigo}.csv"), unsafe_allow_html=True)
+        else:
+            st.info("No hay datos para ese código de usuario.")
+
+    # Descarga historial grupal de todos los usuarios
+    st.markdown("#### Descargar historial grupal/completo")
+    if not df.empty:
+        st.dataframe(df)
+        st.markdown(get_table_download_link(df, filename="diario_emocional_completo.csv"), unsafe_allow_html=True)
+    else:
+        st.info("No hay ingresos registrados aún.")
+
+# =========== ENLACES Y PIE DE PÁGINA =========================
 st.markdown("---")
 st.subheader("📅 Agendar una consulta con un profesional")
-st.write("Si deseas hablar con un profesional de salud mental, agenda una cita a continuación.")
 booking_url = "https://forms.gle/MQwofoD14ELSp4Ye7"
 st.markdown(f'<a href="{booking_url}" target="_blank"><button style="background-color: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 4px; cursor: pointer;">AGENDAR CITA</button></a>', unsafe_allow_html=True)
 
@@ -174,7 +181,6 @@ st.write("Si deseas enviar un mensaje por WhatsApp, haz clic en el siguiente bot
 whatsapp_url = "https://wa.me/59897304859?text=Hola,%20necesito%20ayuda%20con%20mi%20salud%20mental."
 st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color: #25D366; color: white; padding: 10px 24px; border: none; border-radius: 4px; cursor: pointer;">Enviar Mensaje</button></a>', unsafe_allow_html=True)
 
-# Footer y profesionales
 st.markdown("---")
 st.write("VITAL LE AGRADECE POR CONFIAR Y USAR NUESTRO SERVICIO ❤️")
 st.subheader("⚠️  Por consultas, y/o para participar y brindar tu servicio como profesional de la salud en nuestra app, comunicarse con:")
