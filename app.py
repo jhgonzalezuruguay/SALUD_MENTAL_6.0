@@ -6,8 +6,8 @@ import csv
 import base64
 
 # ================== CONFIGURACIÓN DE ADMIN ==================
-ADMIN_USER_CODE = "9999999"  # Cambia esto por tu código personal de 7 dígitos de administrador
-ADMIN_PASSWORD = "123456"    # Cambia esto por tu clave secreta de administrador
+ADMIN_USER_CODE = "16990037"  # Cambia esto por tu código personal de 7 dígitos de administrador
+ADMIN_PASSWORD = "16990037"    # Cambia esto por tu clave secreta de administrador
 
 # ================== FUNCIONES ===============================
 
@@ -57,13 +57,13 @@ st.title("📔 Diario Emocional: Check-in")
 # =========== INGRESO DE USUARIO (CÓDIGO IDENTIFICADOR) ===========
 if st.session_state.codigo_usuario is None:
     st.subheader("🔒 Ingreso de Usuario")
-    codigo_input = st.text_input("Por favor, ingresa tu código identificador de 7 dígitos:", max_chars=7)
+    codigo_input = st.text_input("Por favor, ingresa tu Documento de Identidad, sin puntos ni guiones:", max_chars=8)
     if st.button("Ingresar"):
-        if codigo_input.isdigit() and len(codigo_input) == 7:
+        if codigo_input.isdigit() and len(codigo_input) == 8:
             st.session_state.codigo_usuario = codigo_input
-            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional.")
+            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional, oprime 'Ingresar' nuevamente.")
         else:
-            st.error("El código debe ser numérico y tener exactamente 7 dígitos.")
+            st.error("El código debe ser numérico y tener exactamente 8 dígitos.")
     st.stop()
 
 # =========== ENTRADA DIARIO EMOCIONAL ======================
@@ -149,7 +149,7 @@ if st.session_state.codigo_usuario == ADMIN_USER_CODE:
 
         # Descarga historial individual de cualquier usuario
         st.markdown("#### Descargar historial individual de usuario")
-        buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=7, key="descarga_individual")
+        buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=8, key="descarga_individual")
         if buscar_codigo:
             df_usuario = df[df["codigo_usuario"] == buscar_codigo]
             if not df_usuario.empty:
