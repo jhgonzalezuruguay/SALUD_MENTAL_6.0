@@ -60,7 +60,7 @@ if st.session_state.codigo_usuario is None:
     if st.button("Ingresar"):
         if codigo_input.isdigit() and len(codigo_input) == 8:
             st.session_state.codigo_usuario = codigo_input
-            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional.")
+            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional, oprime 'Ingresar' nuevamente.")
         else:
             st.error("El código debe ser numérico y tener exactamente 8 dígitos.")
     st.stop()
