@@ -118,7 +118,7 @@ if st.checkbox("📖 Mostrar historial de entradas"):
         df_usuario = df[df["codigo_usuario"] == st.session_state.codigo_usuario]
         if not df_usuario.empty:
             st.dataframe(df_usuario)
-            st.info("Solo el administrador puede descargar el historial en CSV.")
+            #st.info("Solo el administrador puede descargar el historial en CSV.")
         else:
             st.info("Aún no has registrado entradas.")
     else:
