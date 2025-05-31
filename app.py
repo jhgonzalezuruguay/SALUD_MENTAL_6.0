@@ -6,7 +6,7 @@ import csv
 import base64
 
 # ================== CONFIGURACIÓN DE ADMIN ==================
-ADMIN_PASSWORD = "123456"  # CAMBIA esto por tu clave secreta
+ADMIN_PASSWORD = "1699003"  # CAMBIA esto por tu clave secreta
 
 # ================== FUNCIONES ===============================
 
