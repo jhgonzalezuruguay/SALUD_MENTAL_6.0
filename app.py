@@ -147,7 +147,7 @@ else:
 
     # Descarga historial individual de cualquier usuario
     st.markdown("#### Descargar historial individual de usuario")
-    buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=8 key="descarga_individual")
+    buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=8, key="descarga_individual")
     if buscar_codigo:
         df_usuario = df[df["codigo_usuario"] == buscar_codigo]
         if not df_usuario.empty:
