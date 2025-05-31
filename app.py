@@ -6,7 +6,8 @@ import csv
 import base64
 
 # ================== CONFIGURACIÓN DE ADMIN ==================
-ADMIN_PASSWORD = "16990037"  # CAMBIA esto por tu clave secreta
+ADMIN_USER_CODE = "9999999"  # Cambia esto por tu código personal de 7 dígitos de administrador
+ADMIN_PASSWORD = "123456"    # Cambia esto por tu clave secreta de administrador
 
 # ================== FUNCIONES ===============================
 
@@ -56,13 +57,13 @@ st.title("📔 Diario Emocional: Check-in")
 # =========== INGRESO DE USUARIO (CÓDIGO IDENTIFICADOR) ===========
 if st.session_state.codigo_usuario is None:
     st.subheader("🔒 Ingreso de Usuario")
-    codigo_input = st.text_input("Por favor, ingresa tu código identificador de 8 dígitos (Documento de Identidad, sin puntos ni guiones):", max_chars=8)
+    codigo_input = st.text_input("Por favor, ingresa tu código identificador de 7 dígitos:", max_chars=7)
     if st.button("Ingresar"):
-        if codigo_input.isdigit() and len(codigo_input) == 8:
+        if codigo_input.isdigit() and len(codigo_input) == 7:
             st.session_state.codigo_usuario = codigo_input
-            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional, oprime 'Ingresar' nuevamente.")
+            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional.")
         else:
-            st.error("El código debe ser numérico y tener exactamente 8 dígitos.")
+            st.error("El código debe ser numérico y tener exactamente 7 dígitos.")
     st.stop()
 
 # =========== ENTRADA DIARIO EMOCIONAL ======================
@@ -123,46 +124,47 @@ if st.checkbox("📖 Mostrar historial de entradas"):
     else:
         st.info("Aún no has registrado entradas.")
 
-# =========== ACCESO ADMINISTRATIVO ================================
-st.markdown("---")
-st.subheader("🔑 Acceso administrativo (descarga de datos)")
+# =========== ACCESO ADMINISTRATIVO (SOLO VISIBLE A ADMIN) =========
+if st.session_state.codigo_usuario == ADMIN_USER_CODE:
+    st.markdown("---")
+    st.subheader("🔑 Acceso administrativo (descarga de datos)")
 
-if not st.session_state.admin_ok:
-    admin_code = st.text_input("Código de administrador:", type="password")
-    if st.button("Ingresar como administrador"):
-        if admin_code == ADMIN_PASSWORD:
-            st.session_state.admin_ok = True
-            st.success("Acceso concedido. Puedes descargar los historiales.")
-        else:
-            st.error("Código incorrecto.")
-else:
-    st.success("🟢 Acceso de administrador activo.")
-
-    # Listado de códigos únicos de usuario
-    st.markdown("#### Códigos de usuario registrados")
-    df = cargar_diario_csv()
-    codigos_unicos = sorted(df["codigo_usuario"].unique())
-    st.write("Códigos únicos registrados:")
-    st.code('\n'.join(codigos_unicos), language="text")
-
-    # Descarga historial individual de cualquier usuario
-    st.markdown("#### Descargar historial individual de usuario")
-    buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=8, key="descarga_individual")
-    if buscar_codigo:
-        df_usuario = df[df["codigo_usuario"] == buscar_codigo]
-        if not df_usuario.empty:
-            st.dataframe(df_usuario)
-            st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_codigo}.csv"), unsafe_allow_html=True)
-        else:
-            st.info("No hay datos para ese código de usuario.")
-
-    # Descarga historial grupal de todos los usuarios
-    st.markdown("#### Descargar historial grupal/completo")
-    if not df.empty:
-        st.dataframe(df)
-        st.markdown(get_table_download_link(df, filename="diario_emocional_completo.csv"), unsafe_allow_html=True)
+    if not st.session_state.admin_ok:
+        admin_code = st.text_input("Código de administrador:", type="password")
+        if st.button("Ingresar como administrador"):
+            if admin_code == ADMIN_PASSWORD:
+                st.session_state.admin_ok = True
+                st.success("Acceso concedido. Puedes descargar los historiales.")
+            else:
+                st.error("Código incorrecto.")
     else:
-        st.info("No hay ingresos registrados aún.")
+        st.success("🟢 Acceso de administrador activo.")
+
+        # Listado de códigos únicos de usuario
+        st.markdown("#### Códigos de usuario registrados")
+        df = cargar_diario_csv()
+        codigos_unicos = sorted(df["codigo_usuario"].unique())
+        st.write("Códigos únicos registrados:")
+        st.code('\n'.join(codigos_unicos), language="text")
+
+        # Descarga historial individual de cualquier usuario
+        st.markdown("#### Descargar historial individual de usuario")
+        buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=7, key="descarga_individual")
+        if buscar_codigo:
+            df_usuario = df[df["codigo_usuario"] == buscar_codigo]
+            if not df_usuario.empty:
+                st.dataframe(df_usuario)
+                st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_codigo}.csv"), unsafe_allow_html=True)
+            else:
+                st.info("No hay datos para ese código de usuario.")
+
+        # Descarga historial grupal de todos los usuarios
+        st.markdown("#### Descargar historial grupal/completo")
+        if not df.empty:
+            st.dataframe(df)
+            st.markdown(get_table_download_link(df, filename="diario_emocional_completo.csv"), unsafe_allow_html=True)
+        else:
+            st.info("No hay ingresos registrados aún.")
 
 # =========== ENLACES Y PIE DE PÁGINA =========================
 st.markdown("---")
