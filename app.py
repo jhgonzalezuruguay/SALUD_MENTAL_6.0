@@ -39,7 +39,7 @@ def get_table_download_link(df, filename="diario_emocional.csv"):
 
 # ================== AUTENTICACIÓN ==================
 def mostrar_login():
-    st.title('🔒 Ingreso a: "DIARIO EMOCIONAL"')
+    st.title('🔒 Registrarse e Ingresar a: "DIARIO EMOCIONAL"')
     tabs = st.tabs(["Iniciar sesión", "Registrarse"])
     with tabs[0]:
         username = st.text_input("Usuario", key="login_user")
