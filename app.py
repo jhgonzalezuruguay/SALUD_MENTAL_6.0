@@ -48,7 +48,7 @@ def mostrar_login():
             user = get_user(username)
             if user and user["password"] == hash_password(password):
                 st.session_state["user"] = user
-                st.success("¡Bienvenido/a!")
+                st.success("¡Bienvenido.Oprime Ingresar!")
                 st.session_state["do_rerun"] = True
             else:
                 st.error("Usuario o contraseña incorrectos.")
