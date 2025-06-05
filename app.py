@@ -1,4 +1,4 @@
-import streamlit as st
+"""import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
@@ -209,4 +209,4 @@ st.write("Taller de inglés (virtual)")
 st.write("Correo: williamforever2014@gmail.com")
 
 st.markdown("---")
-st.write("**Nota:** Esta herramienta proporciona diagnósticos preliminares basados en los síntomas ingresados. No reemplaza una consulta profesional.")
+st.write("**Nota:** Esta herramienta proporciona diagnósticos preliminares basados en los síntomas ingresados. No reemplaza una consulta profesional.")"""
