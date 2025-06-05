@@ -89,7 +89,7 @@ emotions = [
     {"label": "Ira", "emoji": "😠"},
     {"label": "Confuso", "emoji": "😐"},
     {"label": "Gratitud", "emoji": "🙏"},
-    {"label": "Miedo", "emoji": "😨"}
+    {"label": "Miedo", "emoji": "😨"},
     {"label": "Feliz", "emoji": "😀"},
     {"label": "Ansioso", "emoji": "😰"},
     {"label": "Relajado", "emoji": "😌"},
