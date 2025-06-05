@@ -84,14 +84,23 @@ st.title("📔 Diario Emocional: Check-in")
 
 # =========== ENTRADA DIARIO EMOCIONAL ======================
 emotions = [
-    {"label": "Alegría", "emoji": "😊"},
-    {"label": "Ansiedad", "emoji": "😟"},
-    {"label": "Tristeza", "emoji": "😢"},
+    {"label": "Alegre", "emoji": "😊"},
+    {"label": "Triste", "emoji": "😢"},
     {"label": "Ira", "emoji": "😠"},
-    {"label": "Confusión", "emoji": "😐"},
+    {"label": "Confuso", "emoji": "😐"},
     {"label": "Gratitud", "emoji": "🙏"},
     {"label": "Miedo", "emoji": "😨"}
+    {"label": "Feliz", "emoji": "😀"},
+    {"label": "Ansioso", "emoji": "😰"},
+    {"label": "Relajado", "emoji": "😌"},
+    {"label": "Enojado", "emoji": "😡"},
+    {"label": "Fiesta", "emoji": "🥳"},
+    {"label": "Enamorado", "emoji": "😍"},
+    {"label": "Cool", "emoji": "😎"},
+    {"label": "Corazòn roto", "emoji": "💔"},
+    {"label": "Asombrado", "emoji": "🤩"}
 ]
+
 
 st.subheader("¿Cómo te sientes hoy?")
 
