@@ -1,3 +1,204 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+from docx import Document
+from io import BytesIO
+import matplotlib.pyplot as plt
+import hashlib
+
+st.set_page_config(page_title="Salud Mental 6.0 - Sueños", layout="centered")
+
+# --------- INICIALIZACIÓN DE VARIABLES DE SESIÓN ---------
+if "usuarios" not in st.session_state:
+    st.session_state["usuarios"] = [
+        {"username": "admin", "password": hashlib.sha256("admin123".encode()).hexdigest(), "rol": "admin"}
+    ]
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+if "dreams" not in st.session_state:
+    st.session_state["dreams"] = []
+if "reset_form" not in st.session_state:
+    st.session_state["reset_form"] = False
+
+# --------- CONTROL DE RERUN (Siempre después de inicialización) ---------
+if st.session_state.get("do_rerun", False):
+    st.session_state["do_rerun"] = False
+    st.rerun()
+
+# --------- CONFIGURACIÓN DE CATEGORÍAS ---------
+CATEGORIAS_SUEÑOS = [
+    "😌 Bueno", "😱 Pesadilla", "😐 Neutral", "🌀 Confuso",
+    "👨‍👩‍👧‍👦 Familiares", "👫 Amigos", "💑 Novia/Novio",
+    "🦅 Volar", "🌊 Agua", "🏃‍♂️ Persecución"
+]
+COLORES = [
+    "#A5D6A7", "#EF9A9A", "#FFF59D", "#B3E5FC", "#FFDAB9",
+    "#E6E6FA", "#FFB6C1", "#87CEEB", "#00BFFF", "#B0C4DE"
+]
+
+# --------- FUNCIONES AUXILIARES DE USUARIO ---------
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_user(username: str):
+    return next((u for u in st.session_state["usuarios"] if u["username"] == username), None)
+
+# --------- INTERFAZ DE AUTENTICACIÓN ---------
+def mostrar_login():
+    st.title("🔐 Salud Mental 6.0 - Iniciar Sesión")
+    tabs = st.tabs(["Iniciar sesión", "Registrarse"])
+    with tabs[0]:
+        username = st.text_input("Usuario", key="login_user")
+        password = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("Ingresar"):
+            user = get_user(username)
+            if user and user["password"] == hash_password(password):
+                st.session_state["user"] = user
+                st.success("¡Bienvenido/a!")
+                st.session_state["do_rerun"] = True
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+    with tabs[1]:
+        username = st.text_input("Nuevo usuario", key="reg_user")
+        password = st.text_input("Nueva contraseña", type="password", key="reg_pass")
+        if st.button("Registrarse"):
+            if not username or not password:
+                st.warning("Completa todos los campos.")
+            elif get_user(username):
+                st.warning("El nombre de usuario ya existe.")
+            else:
+                st.session_state["usuarios"].append({
+                    "username": username,
+                    "password": hash_password(password),
+                    "rol": "usuario"
+                })
+                st.success("Usuario registrado. Ahora puedes iniciar sesión.")
+                st.session_state["do_rerun"] = True
+
+# --------- BLOQUE DE AUTENTICACIÓN ---------
+if not st.session_state["user"]:
+    mostrar_login()
+    st.stop()
+
+# --------- VARIABLES DE USUARIO Y ROL ---------
+user = st.session_state["user"]
+es_admin = user["rol"] == "admin"
+st.title(f"Salud Mental 6.0 {'(Admin)' if es_admin else ''} - Sueños")
+
+# --------- FORMULARIO PARA NUEVO SUEÑO ---------
+with st.form("dream_form"):
+    st.subheader("✍️ Escribe tu sueño")
+    # --- Manejo del reseteo del formulario ---
+    if st.session_state.reset_form:
+        titulo_default = ""
+        contenido_default = ""
+        categoria_default = CATEGORIAS_SUEÑOS[0]
+        st.session_state.reset_form = False
+    else:
+        titulo_default = st.session_state.get("titulo", "")
+        contenido_default = st.session_state.get("contenido", "")
+        categoria_default = st.session_state.get("categoria", CATEGORIAS_SUEÑOS[0])
+
+    titulo = st.text_input("Título del sueño", value=titulo_default, key="titulo")
+    contenido = st.text_area("Describe tu sueño...", value=contenido_default, key="contenido")
+    categoria = st.selectbox(
+        "Categoría del sueño",
+        CATEGORIAS_SUEÑOS,
+        index=CATEGORIAS_SUEÑOS.index(categoria_default),
+        key="categoria"
+    )
+    submitted = st.form_submit_button("Guardar sueño")
+
+    if submitted:
+        if not contenido.strip():
+            st.error("Por favor, escribe el contenido del sueño.")
+        elif not titulo.strip():
+            st.error("Por favor, asigna un título a tu sueño.")
+        else:
+            st.session_state["dreams"].append({
+                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "usuario": user["username"],
+                "titulo": titulo.strip()[:100],
+                "contenido": contenido.strip()[:1000],
+                "categoria": categoria,
+                "eliminado": False
+            })
+            st.success("🌙 Sueño guardado correctamente.")
+            st.session_state.reset_form = True
+            st.rerun()
+
+# --------- VISTA DE SUEÑOS Y ACCIONES ---------
+df = pd.DataFrame(st.session_state["dreams"])
+
+# Si no hay sueños o columnas, muestra mensaje y evita errores
+if df.empty or not all(col in df.columns for col in ["eliminado", "usuario", "fecha"]):
+    st.subheader("🗂 Tus sueños" if not es_admin else "🗂 Sueños de todos los usuarios")
+    st.info("Aún no hay sueños registrados.")
+    df_vista = pd.DataFrame()  # Para evitar errores en estadísticas
+else:
+    if es_admin:
+        df_vista = df[df["eliminado"] == False].sort_values(by="fecha", ascending=False)
+    else:
+        df_vista = df[(df["eliminado"] == False) & (df["usuario"] == user["username"])].sort_values(by="fecha", ascending=False)
+    st.subheader("🗂 Tus sueños" if not es_admin else "🗂 Sueños de todos los usuarios")
+
+    if not df_vista.empty:
+        st.dataframe(df_vista[["fecha", "titulo", "categoria"]], use_container_width=True)
+        for idx, row in df_vista.iterrows():
+            with st.expander(f"{row['fecha']} - {row['titulo']} ({row['categoria']})"):
+                st.write(row['contenido'])
+                if not es_admin and st.button(f"🗑️ Ocultar este sueño", key=f"del_{idx}"):
+                    st.session_state["dreams"][df.index[idx]]["eliminado"] = True
+                    st.session_state["do_rerun"] = True
+
+        # Solo el admin puede descargar todos los sueños
+        if es_admin:
+            csv = df.drop(columns=["eliminado"]).to_csv(index=False).encode('utf-8')
+            st.download_button("⬇️ Descargar todos como CSV", csv, "suenos_salud_mental.csv", "text/csv")
+            doc = Document()
+            doc.add_heading("Sueños - Salud Mental 6.0", 0)
+            for row in df.itertuples():
+                doc.add_heading(f"{row.titulo} ({row.categoria})", level=2)
+                doc.add_paragraph(f"Fecha: {row.fecha}")
+                doc.add_paragraph(f"Usuario: {row.usuario}")
+                doc.add_paragraph(row.contenido)
+                doc.add_paragraph("")
+            doc_io = BytesIO()
+            doc.save(doc_io)
+            doc_io.seek(0)
+            st.download_button(
+                "⬇️ Descargar todos como Word",
+                doc_io,
+                "suenos_salud_mental.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+    else:
+        st.info("Aún no hay sueños registrados.")
+
+# --------- ESTADÍSTICAS DE SUEÑOS (Gráfico de barras horizontales) ---------
+st.subheader("📊 Estadística de sueños" if not es_admin else "📊 Estadística global de sueños")
+if not df.empty and all(col in df.columns for col in ["eliminado", "usuario", "fecha"]) and not df_vista.empty:
+    conteo = df_vista["categoria"].value_counts().reindex(CATEGORIAS_SUEÑOS, fill_value=0)
+    fig, ax = plt.subplots()
+    ax.barh(conteo.index, conteo.values, color=COLORES)
+    ax.set_xlabel("Cantidad de sueños")
+    ax.set_ylabel("Categoría")
+    ax.set_title("Cantidad de sueños por categoría")
+    plt.tight_layout()
+    st.pyplot(fig)
+    resumen = "\n".join([f"- {cat}: {conteo[cat]}" for cat in CATEGORIAS_SUEÑOS])
+    st.markdown(f"**Resumen:**\n{resumen}")
+else:
+    st.info("Registra sueños para ver estadísticas.")
+
+# --------- CIERRE DE SESIÓN ---------
+if st.button("Cerrar sesión"):
+    st.session_state["user"] = None
+    st.session_state["do_rerun"] = True
+
+
+
+
 """import streamlit as st
 import pandas as pd
 from datetime import datetime
