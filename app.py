@@ -1,39 +1,35 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
-import csv
+from io import BytesIO
+import hashlib
 import base64
 
-# ================== CONFIGURACIÓN DE ADMIN ==================
-ADMIN_USER_CODE = "16990037"  # Cambia esto por tu código personal de 7 dígitos de administrador
-ADMIN_PASSWORD = "16990037"    # Cambia esto por tu clave secreta de administrador
+# ================== CONFIGURACIÓN DE USUARIOS Y SESIÓN ==================
+if "usuarios" not in st.session_state:
+    st.session_state["usuarios"] = [
+        {"username": "admin", "password": hashlib.sha256("admin123".encode()).hexdigest(), "rol": "admin"}
+    ]
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+if "diary_data" not in st.session_state:
+    st.session_state["diary_data"] = []
+if "reset_form" not in st.session_state:
+    st.session_state["reset_form"] = False
+if "do_rerun" not in st.session_state:
+    st.session_state["do_rerun"] = False
 
-# ================== FUNCIONES ===============================
+# ========== CONTROL DE RERUN ==========
+if st.session_state["do_rerun"]:
+    st.session_state["do_rerun"] = False
+    st.rerun()
 
-DIARIO_CSV = "diario_emocional.csv"
+# ================== FUNCIONES AUXILIARES ==================
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-def guardar_diario_csv(entry):
-    file_exists = os.path.isfile(DIARIO_CSV)
-    entry_to_save = entry.copy()
-    entry_to_save["emociones"] = ";".join(entry["emociones"]) if entry["emociones"] else ""
-    entry_to_save["intensidades"] = ";".join([f"{k}:{v}" for k, v in entry["intensidades"].items()]) if entry["intensidades"] else ""
-    entry_to_save["acciones"] = ";".join(entry["acciones"]) if entry["acciones"] else ""
-    with open(DIARIO_CSV, mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=entry_to_save.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(entry_to_save)
-
-def cargar_diario_csv():
-    if os.path.isfile(DIARIO_CSV):
-        try:
-            df = pd.read_csv(DIARIO_CSV, dtype={'codigo_usuario':str})
-        except Exception:
-            df = pd.read_csv(DIARIO_CSV, dtype=str)
-        return df
-    else:
-        return pd.DataFrame(columns=["codigo_usuario","fecha", "emociones", "intensidades", "contexto", "acciones"])
+def get_user(username):
+    return next((u for u in st.session_state["usuarios"] if u["username"] == username), None)
 
 def get_table_download_link(df, filename="diario_emocional.csv"):
     csv_str = df.to_csv(index=False, encoding='utf-8')
@@ -41,30 +37,50 @@ def get_table_download_link(df, filename="diario_emocional.csv"):
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Descargar historial como CSV</a>'
     return href
 
-# ================== SESIONES STREAMLIT ======================
-if "diary_data" not in st.session_state:
-    st.session_state.diary_data = []
-if "codigo_usuario" not in st.session_state:
-    st.session_state.codigo_usuario = None
-if "admin_ok" not in st.session_state:
-    st.session_state.admin_ok = False
+# ================== AUTENTICACIÓN ==================
+def mostrar_login():
+    st.title("🔒 Ingreso a Salud Mental 6.0")
+    tabs = st.tabs(["Iniciar sesión", "Registrarse"])
+    with tabs[0]:
+        username = st.text_input("Usuario", key="login_user")
+        password = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("Ingresar"):
+            user = get_user(username)
+            if user and user["password"] == hash_password(password):
+                st.session_state["user"] = user
+                st.success("¡Bienvenido/a!")
+                st.session_state["do_rerun"] = True
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+    with tabs[1]:
+        username = st.text_input("Nuevo usuario", key="reg_user")
+        password = st.text_input("Nueva contraseña", type="password", key="reg_pass")
+        if st.button("Registrarse"):
+            if not username or not password:
+                st.warning("Completa todos los campos.")
+            elif get_user(username):
+                st.warning("El nombre de usuario ya existe.")
+            else:
+                st.session_state["usuarios"].append({
+                    "username": username,
+                    "password": hash_password(password),
+                    "rol": "usuario"
+                })
+                st.success("Usuario registrado. Ahora puedes iniciar sesión.")
+                st.session_state["do_rerun"] = True
+
+# ========== BLOQUE DE AUTENTICACIÓN ==========
+if not st.session_state["user"]:
+    mostrar_login()
+    st.stop()
+
+user = st.session_state["user"]
+es_admin = user["rol"] == "admin"
 
 # ================== TÍTULOS ================================
 st.title("🌈 VITAL")
 st.title("Asistente de Salud Mental con I.A.")
 st.title("📔 Diario Emocional: Check-in")
-
-# =========== INGRESO DE USUARIO (CÓDIGO IDENTIFICADOR) ===========
-if st.session_state.codigo_usuario is None:
-    st.subheader("🔒 Ingreso de Usuario")
-    codigo_input = st.text_input("Por favor, ingresa tu Documento de Identidad, sin puntos ni guiones:", max_chars=8)
-    if st.button("Ingresar"):
-        if codigo_input.isdigit() and len(codigo_input) == 8:
-            st.session_state.codigo_usuario = codigo_input
-            st.success("¡Código aceptado! Ahora puedes completar tu diario emocional, oprime 'Ingresar' nuevamente.")
-        else:
-            st.error("El código debe ser numérico y tener exactamente 8 dígitos.")
-    st.stop()
 
 # =========== ENTRADA DIARIO EMOCIONAL ======================
 emotions = [
@@ -79,92 +95,124 @@ emotions = [
 
 st.subheader("¿Cómo te sientes hoy?")
 
+if st.session_state.reset_form:
+    emociones_default = []
+    contexto_default = ""
+    acciones_default = []
+    st.session_state.reset_form = False
+else:
+    emociones_default = []
+    contexto_default = ""
+    acciones_default = []
+
 selected_emotions = st.multiselect(
     "Selecciona hasta 3 emociones:",
     options=[f"{e['emoji']} {e['label']}" for e in emotions],
-    max_selections=3
+    max_selections=3,
+    default=emociones_default,
+    key="emociones"
 )
 
 emotion_intensities = {}
 for emotion in selected_emotions:
-    level = st.slider(f"Intensidad de {emotion} (1-10):", 1, 10, 5)
+    level = st.slider(f"Intensidad de {emotion} (1-10):", 1, 10, 5, key=f"intensidad_{emotion}")
     emotion_intensities[emotion] = level
 
-context = st.text_area("¿Qué hizo que te sintieras así?", placeholder="Describe brevemente lo que pasó...")
+context = st.text_area("¿Qué hizo que te sintieras así?", placeholder="Describe brevemente lo que pasó...", key="contexto", value=contexto_default)
 
 st.markdown("¿Qué hiciste para cuidarte?")
 coping_actions = st.multiselect(
     "Selecciona las acciones que tomaste:",
-    ["Hablé con alguien", "Medité", "Salí a caminar", "Escuché música", "Escribí", "Nada en particular"]
+    ["Hablé con alguien", "Medité", "Salí a caminar", "Escuché música", "Escribí", "Nada en particular"],
+    default=acciones_default,
+    key="acciones"
 )
 
 if st.button("💾 Guardar entrada de hoy"):
     entry = {
-        "codigo_usuario": st.session_state.codigo_usuario,
+        "usuario": user["username"],
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "emociones": selected_emotions,
-        "intensidades": emotion_intensities,
+        "emociones": ";".join(selected_emotions) if selected_emotions else "",
+        "intensidades": ";".join([f"{k}:{v}" for k, v in emotion_intensities.items()]) if emotion_intensities else "",
         "contexto": context,
-        "acciones": coping_actions
+        "acciones": ";".join(coping_actions) if coping_actions else ""
     }
-    st.session_state.diary_data.append(entry)
-    guardar_diario_csv(entry)
+    st.session_state["diary_data"].append(entry)
     st.success("✔️ Entrada guardada exitosamente.")
+    st.session_state.reset_form = True
+    st.rerun()
 
-# =========== HISTORIAL INDIVIDUAL (SIN DESCARGA) =================
+# =========== HISTORIAL INDIVIDUAL (NO DESCARGA SI NO ES ADMIN) ============
+st.markdown("---")
 if st.checkbox("📖 Mostrar historial de entradas"):
-    df = cargar_diario_csv()
+    df = pd.DataFrame(st.session_state["diary_data"])
     if not df.empty:
-        df_usuario = df[df["codigo_usuario"] == st.session_state.codigo_usuario]
-        if not df_usuario.empty:
-            st.dataframe(df_usuario)
-            #st.info("Solo el administrador puede descargar el historial en CSV.")
-        else:
-            st.info("Aún no has registrado entradas.")
-    else:
-        st.info("Aún no has registrado entradas.")
-
-# =========== ACCESO ADMINISTRATIVO (SOLO VISIBLE A ADMIN) =========
-if st.session_state.codigo_usuario == ADMIN_USER_CODE:
-    st.markdown("---")
-    st.subheader("🔑 Acceso administrativo (descarga de datos)")
-
-    if not st.session_state.admin_ok:
-        admin_code = st.text_input("Código de administrador:", type="password")
-        if st.button("Ingresar como administrador"):
-            if admin_code == ADMIN_PASSWORD:
-                st.session_state.admin_ok = True
-                st.success("Acceso concedido. Puedes descargar los historiales.")
-            else:
-                st.error("Código incorrecto.")
-    else:
-        st.success("🟢 Acceso de administrador activo.")
-
-        # Listado de códigos únicos de usuario
-        st.markdown("#### Códigos de usuario registrados")
-        df = cargar_diario_csv()
-        codigos_unicos = sorted(df["codigo_usuario"].unique())
-        st.write("Códigos únicos registrados:")
-        st.code('\n'.join(codigos_unicos), language="text")
-
-        # Descarga historial individual de cualquier usuario
-        st.markdown("#### Descargar historial individual de usuario")
-        buscar_codigo = st.text_input("Código identificador de usuario para descargar historial:", max_chars=8, key="descarga_individual")
-        if buscar_codigo:
-            df_usuario = df[df["codigo_usuario"] == buscar_codigo]
-            if not df_usuario.empty:
-                st.dataframe(df_usuario)
-                st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_codigo}.csv"), unsafe_allow_html=True)
-            else:
-                st.info("No hay datos para ese código de usuario.")
-
-        # Descarga historial grupal de todos los usuarios
-        st.markdown("#### Descargar historial grupal/completo")
-        if not df.empty:
+        if es_admin:
             st.dataframe(df)
             st.markdown(get_table_download_link(df, filename="diario_emocional_completo.csv"), unsafe_allow_html=True)
         else:
-            st.info("No hay ingresos registrados aún.")
+            df_usuario = df[df["usuario"] == user["username"]]
+            if not df_usuario.empty:
+                st.dataframe(df_usuario)
+                st.info("Solo el administrador puede descargar el historial en CSV.")
+            else:
+                st.info("Aún no has registrado entradas.")
+    else:
+        st.info("Aún no has registrado entradas.")
+
+# =========== ADMIN: DESCARGA DE USUARIOS INDIVIDUALES ===============
+if es_admin:
+    st.markdown("---")
+    st.subheader("🔑 Acceso administrativo (descarga de datos)")
+    df = pd.DataFrame(st.session_state["diary_data"])
+    if not df.empty:
+        st.markdown("#### Usuarios registrados")
+        codigos_unicos = sorted(df["usuario"].unique())
+        st.write("Usuarios registrados:")
+        st.code('\n'.join(codigos_unicos), language="text")
+
+        st.markdown("#### Descargar historial individual de usuario")
+        buscar_usuario = st.text_input("Nombre de usuario para descargar historial:", key="descarga_individual")
+        if buscar_usuario:
+            df_usuario = df[df["usuario"] == buscar_usuario]
+            if not df_usuario.empty:
+                st.dataframe(df_usuario)
+                st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_usuario}.csv"), unsafe_allow_html=True)
+            else:
+                st.info("No hay datos para ese usuario.")
+    else:
+        st.info("No hay ingresos registrados aún.")
+
+# =========== ESTADÍSTICA (BARRAS HORIZONTALES) ===============
+st.markdown("---")
+st.subheader("📊 Estadísticas de emociones")
+df = pd.DataFrame(st.session_state["diary_data"])
+if not df.empty:
+    # Contar emociones
+    from collections import Counter
+    todas_las_emociones = []
+    for em in df["emociones"]:
+        if isinstance(em, str) and em:
+            todas_las_emociones.extend(em.split(";"))
+    conteo = Counter(todas_las_emociones)
+    if conteo:
+        conteo_df = pd.DataFrame.from_dict(conteo, orient='index', columns=['Cantidad']).sort_values("Cantidad")
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        conteo_df.plot.barh(ax=ax, color="#A5D6A7")
+        ax.set_xlabel("Cantidad")
+        ax.set_ylabel("Emoción")
+        ax.set_title("Emociones registradas")
+        st.pyplot(fig)
+    else:
+        st.info("Aún no hay emociones registradas.")
+else:
+    st.info("Aún no hay emociones registradas.")
+
+# =========== CIERRE DE SESIÓN ===============
+if st.button("Cerrar sesión"):
+    st.session_state["user"] = None
+    st.session_state["do_rerun"] = True
 
 # =========== ENLACES Y PIE DE PÁGINA =========================
 st.markdown("---")
