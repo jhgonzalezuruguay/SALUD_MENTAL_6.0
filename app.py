@@ -8,7 +8,15 @@ import base64
 # ================== CONFIGURACIÓN DE USUARIOS Y SESIÓN ==================
 if "usuarios" not in st.session_state:
     st.session_state["usuarios"] = [
-        {"username": "admin", "password": hashlib.sha256("admin123".encode()).hexdigest(), "rol": "admin"}
+        {
+            "username": "admin",
+            "password": hashlib.sha256("admin123".encode()).hexdigest(),
+            "rol": "admin",
+            "nombre": "Admin",
+            "apellido": "Admin",
+            "telefono": "",
+            "email": ""
+        }
     ]
 if "user" not in st.session_state:
     st.session_state["user"] = None
@@ -53,10 +61,15 @@ def mostrar_login():
             else:
                 st.error("Usuario o contraseña incorrectos.")
     with tabs[1]:
+        st.write("Completa todos los campos para registrarte:")
         username = st.text_input("Nuevo usuario", key="reg_user")
         password = st.text_input("Nueva contraseña", type="password", key="reg_pass")
+        nombre = st.text_input("Nombre", key="reg_nombre")
+        apellido = st.text_input("Apellido", key="reg_apellido")
+        telefono = st.text_input("Teléfono móvil", key="reg_telefono")
+        email = st.text_input("Email", key="reg_email")
         if st.button("Registrarse"):
-            if not username or not password:
+            if not (username and password and nombre and apellido and telefono and email):
                 st.warning("Completa todos los campos.")
             elif get_user(username):
                 st.warning("El nombre de usuario ya existe.")
@@ -64,7 +77,11 @@ def mostrar_login():
                 st.session_state["usuarios"].append({
                     "username": username,
                     "password": hash_password(password),
-                    "rol": "usuario"
+                    "rol": "usuario",
+                    "nombre": nombre,
+                    "apellido": apellido,
+                    "telefono": telefono,
+                    "email": email
                 })
                 st.success("Usuario registrado. Ahora puedes iniciar sesión.")
                 st.session_state["do_rerun"] = True
@@ -189,6 +206,14 @@ if es_admin:
                 st.markdown(get_table_download_link(df_usuario, filename=f"diario_usuario_{buscar_usuario}.csv"), unsafe_allow_html=True)
             else:
                 st.info("No hay datos para ese usuario.")
+
+        # NUEVO BLOQUE: Exportar listado de usuarios con datos personales
+        st.markdown("#### Descargar listado de usuarios registrados (datos personales)")
+        usuarios_df = pd.DataFrame(st.session_state["usuarios"])
+        if "password" in usuarios_df.columns:
+            usuarios_df = usuarios_df.drop(columns=["password"])
+        st.dataframe(usuarios_df)
+        st.markdown(get_table_download_link(usuarios_df, filename="usuarios_registrados.csv"), unsafe_allow_html=True)
     else:
         st.info("No hay ingresos registrados aún.")
 
@@ -230,7 +255,8 @@ booking_url = "https://forms.gle/MQwofoD14ELSp4Ye7"
 st.markdown(f'<a href="{booking_url}" target="_blank"><button style="background-color: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 4px; cursor: pointer;">AGENDAR CITA</button></a>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.subheader("📋 Registro de Usuario")
+st.subheader("📋 Registro Administrativo de Usuario")
+st.write('Ingresa tus datos a nuestro "Registro Administrativo de Usuario" para mantenerte informado, ofrecerte un acompañamiento más personalizado, guardar tu historial emocional de forma segura y conectarte con profesionales cuando lo necesites. Tu bienestar es único, y tu seguimiento también debe serlo.')
 registro_url = "https://forms.gle/ZsM2xrWyUUU9ak6z7"
 st.markdown(f'<a href="{registro_url}" target="_blank"><button style="background-color: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 4px; cursor: pointer;">REGISTRARSE</button></a>', unsafe_allow_html=True)
 
